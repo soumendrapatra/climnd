@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLIMIND 2.0 – Odisha Historical Pattern Replay Engine</title>
+  <meta name="description" content="Discover what actually happened in Odisha's climate history when conditions matched today. CLIMIND 2.0 finds exact historical periods matching your scenario and shows real outcomes — floods, droughts, and crop impacts — backed by 30 years of evidence." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <!-- ══════════════════════ HEADER ══════════════════════ -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🌏</div>
+        <div class="brand-text">
+          <h1>CLIMIND 2.0</h1>
+          <p>Historical Pattern Replay Engine · Odisha, India</p>
+        </div>
+      </div>
+      <div class="header-live">
+        <span class="live-dot"></span>
+        <span id="live-time">Loading…</span>
+        &nbsp;·&nbsp;
+        <select id="location-select" class="location-dropdown" aria-label="Select location">
+          <option value="20.8,85.8">Odisha (Center)</option>
+          <option value="20.2961,85.8245">Bhubaneswar</option>
+          <option value="20.4625,85.8830">Cuttack</option>
+          <option value="22.2604,84.8536">Rourkela</option>
+          <option value="21.4669,83.9812">Sambalpur</option>
+          <option value="19.3150,84.7941">Berhampur</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ══════════════════════ CURRENT WEATHER BAR ══════════════════════ -->
+    <section class="current-weather-bar" aria-label="Current weather conditions">
+      <div class="weather-metric">
+        <span class="weather-metric-icon">🌡️</span>
+        <div class="weather-metric-data">
+          <div class="label">Temp (2m)</div>
+          <div class="value loading" id="cw-temp">—</div>
+        </div>
+      </div>
+      <div class="weather-metric">
+        <span class="weather-metric-icon">💧</span>
+        <div class="weather-metric-data">
+          <div class="label">Humidity</div>
+          <div class="value loading" id="cw-humidity">—</div>
+        </div>
+      </div>
+      <div class="weather-metric">
+        <span class="weather-metric-icon">🌧️</span>
+        <div class="weather-metric-data">
+          <div class="label">Precip (24h)</div>
+          <div class="value loading" id="cw-precip">—</div>
+        </div>
+      </div>
+      <div class="weather-metric">
+        <span class="weather-metric-icon">💨</span>
+        <div class="weather-metric-data">
+          <div class="label">Wind Speed</div>
+          <div class="value loading" id="cw-wind">—</div>
+        </div>
+      </div>
+      <div class="weather-metric">
+        <span class="weather-metric-icon">🗓️</span>
+        <div class="weather-metric-data">
+          <div class="label">Live Match</div>
+          <div class="value loading" id="cw-match">—</div>
+        </div>
+      </div>
+      <div class="weather-metric">
+        <span class="weather-metric-icon">📊</span>
+        <div class="weather-metric-data">
+          <div class="label">DB Status</div>
+          <div class="value loading" id="db-status">Loading…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════ MAIN GRID ══════════════════════ -->
+    <main class="dashboard-grid">
+
+      <!-- ─────────────── LEFT: SCENARIO BUILDER ─────────────── -->
+      <section class="card scenario-panel" aria-label="Scenario builder">
+        <div class="card-header">
+          <div class="card-title"><span class="card-icon">🧪</span> Scenario Builder</div>
+          <span class="card-badge active" id="match-count-badge">Live</span>
+        </div>
+
+        <p class="scenario-description">
+          Adjust climate parameters below to define a hypothetical scenario.
+          CLIMIND searches 11,682 historical windows to find the most similar past periods
+          and shows <strong>what actually happened</strong>.
+        </p>
+
+        <!-- Temperature Delta -->
+        <div class="slider-group slider-temp">
+          <div class="slider-label">
+            <span class="name">🌡️ Temperature delta</span>
+            <span class="val neutral" id="val-temp">0.0 °C</span>
+          </div>
+          <input type="range" id="slider-temp" min="-3" max="5" step="0.1" value="0"
+                 aria-label="Temperature delta" />
+          <div class="slider-ticks"><span>-3°C</span><span>0</span><span>+5°C</span></div>
+        </div>
+
+        <!-- Humidity Delta -->
+        <div class="slider-group slider-humidity">
+          <div class="slider-label">
+            <span class="name">💧 Humidity delta</span>
+            <span class="val neutral" id="val-humidity">0 %</span>
+          </div>
+          <input type="range" id="slider-humidity" min="-20" max="20" step="1" value="0"
+                 aria-label="Humidity delta" />
+          <div class="slider-ticks"><span>-20%</span><span>0</span><span>+20%</span></div>
+        </div>
+
+        <!-- Wind Speed Delta -->
+        <div class="slider-group slider-wind">
+          <div class="slider-label">
+            <span class="name">💨 Wind speed delta</span>
+            <span class="val neutral" id="val-wind">0.0 km/h</span>
+          </div>
+          <input type="range" id="slider-wind" min="-10" max="20" step="0.5" value="0"
+                 aria-label="Wind speed delta" />
+          <div class="slider-ticks"><span>-10</span><span>0</span><span>+20 km/h</span></div>
+        </div>
+
+        <!-- Precipitation Delta -->
+        <div class="slider-group slider-precip">
+          <div class="slider-label">
+            <span class="name">🌧️ Precipitation delta</span>
+            <span class="val neutral" id="val-precip">0 mm</span>
+          </div>
+          <input type="range" id="slider-precip" min="-30" max="100" step="1" value="0"
+                 aria-label="Precipitation delta" />
+          <div class="slider-ticks"><span>-30mm</span><span>0</span><span>+100mm</span></div>
+        </div>
+
+        <!-- Scenario Duration -->
+        <div class="slider-group slider-duration">
+          <div class="slider-label">
+            <span class="name">📅 Duration window</span>
+            <span class="val neutral" id="val-duration">7 days</span>
+          </div>
+          <input type="range" id="slider-duration" min="7" max="90" step="7" value="7"
+                 aria-label="Duration window" />
+          <div class="slider-ticks"><span>7d</span><span>30d</span><span>90d</span></div>
+        </div>
+
+        <button class="btn-run" id="btn-run" aria-label="Find historical matches">
+          <span id="btn-run-icon">🔍</span>
+          <span id="btn-run-text">Find Historical Matches</span>
+        </button>
+        <button class="btn-reset" id="btn-reset" aria-label="Reset all sliders">
+          ↺ Reset to current conditions
+        </button>
+      </section>
+
+      <!-- ─────────────── RIGHT TOP: RESULTS PANEL ─────────────── -->
+      <section class="card results-panel" aria-label="Historical match results">
+        <div class="card-header">
+          <div class="card-title"><span class="card-icon">🕰️</span> Historical Time Replay</div>
+          <span class="card-badge" id="results-badge">No search yet</span>
+        </div>
+
+        <!-- Summary Metrics -->
+        <div class="summary-metrics" id="summary-metrics">
+          <div class="metric-box matches">
+            <div class="m-icon">📅</div>
+            <div class="m-val" id="stat-matches">—</div>
+            <div class="m-label">Matching Weeks Found</div>
+          </div>
+          <div class="metric-box flood">
+            <div class="m-icon">🌊</div>
+            <div class="m-val" id="stat-flood">—</div>
+            <div class="m-label">Avg Flood Risk</div>
+          </div>
+          <div class="metric-box drought">
+            <div class="m-icon">🏜️</div>
+            <div class="m-val" id="stat-drought">—</div>
+            <div class="m-label">Avg Water Stress</div>
+          </div>
+          <div class="metric-box crop">
+            <div class="m-icon">🌾</div>
+            <div class="m-val" id="stat-crop">—</div>
+            <div class="m-label">Avg Crop Impact</div>
+          </div>
+        </div>
+
+        <!-- Match List -->
+        <div id="matches-container">
+          <div class="empty-state">
+            <div class="es-icon">🌐</div>
+            <h3>Ready to Time Travel</h3>
+            <p>Adjust the sliders and click "Find Historical Matches" to see which periods in Odisha's history most closely match your scenario.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────────── RIGHT MIDDLE: SECTOR IMPACT CARDS ─────────────── -->
+      <section class="card sector-panel" aria-label="Sector-specific impact analysis">
+        <div class="card-header">
+          <div class="card-title"><span class="card-icon">🏢</span> Sector Impact Analysis</div>
+          <span class="card-badge" id="sector-badge">Based on top-5 matches</span>
+        </div>
+
+        <div class="sector-cards" id="sector-cards">
+
+          <!-- Agriculture Card -->
+          <div class="sector-card agriculture">
+            <div class="sector-card-header">
+              <div class="sector-card-icon">🌾</div>
+              <span class="sector-card-name">Agriculture</span>
+            </div>
+            <div class="sector-impact-bar">
+              <div class="sector-impact-label">
+                <span>Yield Impact</span>
+                <span id="ag-yield-val">—</span>
+              </div>
+              <div class="sector-impact-track">
+                <div class="sector-impact-fill" id="ag-yield-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="sector-advice" id="ag-advice">Run a scenario to see agriculture recommendations.</div>
+          </div>
+
+          <!-- Water Card -->
+          <div class="sector-card water">
+            <div class="sector-card-header">
+              <div class="sector-card-icon">💧</div>
+              <span class="sector-card-name">Water Resources</span>
+            </div>
+            <div class="sector-impact-bar">
+              <div class="sector-impact-label">
+                <span>Water Stress Index</span>
+                <span id="water-stress-val">—</span>
+              </div>
+              <div class="sector-impact-track">
+                <div class="sector-impact-fill" id="water-stress-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="sector-advice" id="water-advice">Run a scenario to see water management recommendations.</div>
+          </div>
+
+          <!-- Disaster Card -->
+          <div class="sector-card disaster">
+            <div class="sector-card-header">
+              <div class="sector-card-icon">⚠️</div>
+              <span class="sector-card-name">Disaster Risk</span>
+            </div>
+            <div class="sector-impact-bar">
+              <div class="sector-impact-label">
+                <span>Flood Risk Score</span>
+                <span id="flood-risk-val">—</span>
+              </div>
+              <div class="sector-impact-track">
+                <div class="sector-impact-fill" id="flood-risk-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="sector-advice" id="disaster-advice">Run a scenario to see disaster preparedness recommendations.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ─────────────── RIGHT MIDDLE 2: MAP PANEL ─────────────── -->
+      <section class="card map-panel" aria-label="Geographic impact map">
+        <div class="card-header">
+          <div class="card-title"><span class="card-icon">🗺️</span> Geographic Impact Map</div>
+          <span class="card-badge active">Simulated Risk Distribution</span>
+        </div>
+        <div id="impact-map" style="height: 300px; width: 100%; border-radius: 8px; z-index: 1;"></div>
+      </section>
+
+      <!-- ─────────────── BOTTOM: CHARTS ─────────────── -->
+      <section class="card chart-panel" aria-label="Historical trend charts">
+        <div class="card-header">
+          <div class="card-title"><span class="card-icon">📈</span> Historical Climate Trends (30-Year View)</div>
+          <span class="card-badge active">Open-Meteo ERA5 · 1994–2025</span>
+        </div>
+
+        <div class="charts-grid">
+          <div>
+            <div class="chart-title"><span class="chart-title-dot" style="background:var(--clr-orange)"></span> Outcome Distribution — Top Matches</div>
+            <div class="chart-wrapper"><canvas id="chart-outcomes" role="img" aria-label="Outcome distribution chart"></canvas></div>
+          </div>
+          <div>
+            <div class="chart-title"><span class="chart-title-dot" style="background:var(--clr-blue)"></span> Temperature vs Precipitation (matched periods)</div>
+            <div class="chart-wrapper"><canvas id="chart-scatter" role="img" aria-label="Temperature vs precipitation scatter chart"></canvas></div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+          <div class="chart-title"><span class="chart-title-dot" style="background:var(--clr-green)"></span> Timeline Comparison (Current vs Top 3 Matches)</div>
+          <div class="chart-wrapper" style="height: 250px;"><canvas id="chart-timeline" role="img" aria-label="Timeline comparison chart"></canvas></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ══════════════════════ FOOTER ══════════════════════ -->
+    <footer class="app-footer">
+      <span>CLIMIND 2.0 · Historical Pattern Replay · Odisha, India</span>
+      <div class="footer-badges">
+        <span class="footer-badge">Open-Meteo ERA5</span>
+        <span class="footer-badge">11,682 Fingerprints</span>
+        <span class="footer-badge">1994–2025</span>
+        <span class="footer-badge">No ML — Just Evidence</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Main App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
